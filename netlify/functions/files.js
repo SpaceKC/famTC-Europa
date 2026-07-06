@@ -1,9 +1,10 @@
 // netlify/functions/files.js
 // Incarca, serveste si sterge fisiere (poze, PDF-uri) folosind Netlify Blobs.
+// Varianta FARA PIN - oricine are linkul poate incarca/sterge.
 //
-// POST   /api/files { name, dataBase64, contentType } -> { id }   (protejat prin PIN)
-// GET    /api/files?id=X                               -> fisierul binar (fara PIN, ca o poza sa se poata afisa direct in <img>)
-// DELETE /api/files { id }                              -> { ok }   (protejat prin PIN)
+// POST   /api/files { name, dataBase64, contentType } -> { id }
+// GET    /api/files?id=X                               -> fisierul binar
+// DELETE /api/files { id }                              -> { ok }
 //
 // Limita: request-urile catre functii Netlify sunt limitate la ~6MB per request (plan gratuit).
 
@@ -16,26 +17,10 @@ function fileStore() {
     token: process.env.BLOBS_TOKEN,
   });
 }
-function dataStore() {
-  return getStore({
-    name: 'trip-data',
-    siteID: process.env.SITE_ID,
-    token: process.env.BLOBS_TOKEN,
-  });
-}
-
-async function checkPin(event) {
-  const pin = event.headers['x-trip-pin'] || event.headers['X-Trip-Pin'];
-  if (!pin) return false;
-  const real = await dataStore().get('trip_pin', { type: 'text' });
-  return pin === real;
-}
 
 exports.handler = async function (event) {
   try {
     if (event.httpMethod === 'GET') {
-      // Servire fisier - fara PIN, ca sursa de imagine/link sa functioneze direct in HTML.
-      // ID-urile sunt aleatorii si necunoscute fara acces la jurnal, deci e un compromis acceptabil.
       const id = (event.queryStringParameters || {}).id;
       if (!id) return { statusCode: 400, body: 'id lipsă' };
       const result = await fileStore().getWithMetadata(id, { type: 'arrayBuffer' });
@@ -53,9 +38,6 @@ exports.handler = async function (event) {
     }
 
     const headersJson = { 'Content-Type': 'application/json' };
-    if (!(await checkPin(event))) {
-      return { statusCode: 401, headers: headersJson, body: JSON.stringify({ error: 'PIN lipsă sau incorect.' }) };
-    }
 
     if (event.httpMethod === 'POST') {
       const { name, dataBase64, contentType } = JSON.parse(event.body || '{}');
@@ -80,6 +62,7 @@ exports.handler = async function (event) {
 
     return { statusCode: 405, headers: headersJson, body: JSON.stringify({ error: 'Metodă neacceptată.' }) };
   } catch (e) {
+    console.error('DEBUG files eroare completa:', e);
     return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Eroare server: ' + e.message }) };
   }
 };

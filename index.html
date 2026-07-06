@@ -197,29 +197,6 @@
 
 <div id="boot"><div class="spinner"></div><div class="mark">Jurnal de Călătorie</div><div class="sub">Se încarcă...</div></div>
 
-<div class="pin-wrap" id="pinSetupScreen" style="display:none;">
-  <div class="pin-card">
-    <div class="pin-icon">✎</div>
-    <h1>Creează un PIN</h1>
-    <p>Jurnal comun pentru tot grupul — oricine are linkul și PIN-ul poate vedea și edita totul (filtru simplu, nu o parolă securizată).</p>
-    <input class="pin-input" id="pinSetupInput" inputmode="numeric" maxlength="8" placeholder="ex: 2607">
-    <div class="pin-error" id="pinSetupError"></div>
-    <button class="btn btn-primary" onclick="setupPin()">Salvează PIN-ul și intră</button>
-    <div class="pin-note">Reține-l și trimite-l celorlalți din grup.</div>
-  </div>
-</div>
-
-<div class="pin-wrap" id="pinEntryScreen" style="display:none;">
-  <div class="pin-card">
-    <div class="pin-icon">🔒</div>
-    <h1>Jurnal de Călătorie</h1>
-    <p>Introdu PIN-ul grupului pentru a deschide jurnalul.</p>
-    <input class="pin-input" id="pinEntryInput" inputmode="numeric" maxlength="8" placeholder="••••">
-    <div class="pin-error" id="pinEntryError"></div>
-    <button class="btn btn-primary" onclick="tryUnlock()">Deblochează</button>
-  </div>
-</div>
-
 <div id="app">
   <div class="topbar">
     <button class="hamburger" onclick="toggleDrawer(true)">☰</button>
@@ -233,8 +210,8 @@
       <ul class="nav-list" id="navList"></ul>
       <button class="nav-add" onclick="openAddPageModal()">+ Adaugă pagină</button>
       <div class="sidebar-foot">
-        Jurnal comun — editabil de oricine are PIN-ul.<br>
-        <a href="#" onclick="openChangePinModal();return false;">Schimbă PIN</a> · <a href="#" onclick="exportAll();return false;">Backup</a>
+        Jurnal comun — vizibil și editabil de oricine are linkul.<br>
+        <a href="#" onclick="exportAll();return false;">Backup JSON</a>
       </div>
     </div>
     <div class="main"><div class="doc" id="pageContent"></div></div>
@@ -250,13 +227,11 @@
 
 <script>
 /* ============================================================
-   API HELPERS (server-backed: Upstash Redis + Vercel Blob)
+   API HELPERS (server-backed: Netlify Blobs) - FARA PIN
    ============================================================ */
-let PIN = sessionStorage.getItem('tripPin') || '';
-
 async function apiGet(key){
   try{
-    const r = await fetch('/api/kv?key='+encodeURIComponent(key), { headers:{'x-trip-pin':PIN} });
+    const r = await fetch('/api/kv?key='+encodeURIComponent(key));
     if(!r.ok) return null;
     const d = await r.json();
     return d.value;
@@ -265,14 +240,14 @@ async function apiGet(key){
 async function apiSet(key, value){
   try{
     const r = await fetch('/api/kv', {
-      method:'POST', headers:{'Content-Type':'application/json','x-trip-pin':PIN},
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({key, value})
     });
     return r.ok;
   }catch(e){ return false; }
 }
 async function apiDel(key){
-  try{ await fetch('/api/kv?key='+encodeURIComponent(key), { method:'DELETE', headers:{'x-trip-pin':PIN} }); }catch(e){}
+  try{ await fetch('/api/kv?key='+encodeURIComponent(key), { method:'DELETE' }); }catch(e){}
 }
 function safeParse(str, fb){ try{ return JSON.parse(str); }catch(e){ return fb; } }
 
@@ -355,8 +330,6 @@ const DEFAULT_ITINERARY = [
   ]},
 ];
 
-const DEFAULT_CAR_INFO = { model:'', plate:'', insurance:'', assistance:'', notes:'' };
-
 const DEFAULT_PAGE_CONTENT = {
   budapesta:{countries:'Sosire din România prin Ungaria (Cluj → Budapesta, 420 km).',
     restrictions:'RO: rovinietă valabilă. HU: e-vinietă (D1), recomandat 10 zile.\nLimite: RO 130 · HU autostradă 130, expres 110, localități 50.',
@@ -387,64 +360,15 @@ const DEFAULT_PAGE_CONTENT = {
 /* ============================================================
    STATE
    ============================================================ */
-let pagesList = [], itinerary = [], carInfo = {}, pagesCache = {}, currentSlug = 'itinerary';
+let pagesList = [], itinerary = [], pagesCache = {}, currentSlug = 'itinerary';
 
 /* ============================================================
-   BOOT / PIN (server-verified via /api/pin)
+   BOOT (fara PIN - intra direct)
    ============================================================ */
 (async function boot(){
   document.getElementById('boot').style.display = 'none';
-  let isSet = false;
-  try{
-    const r = await fetch('/api/pin');
-    const d = await r.json();
-    isSet = d.isSet;
-  }catch(e){}
-  if(!isSet){
-    document.getElementById('pinSetupScreen').style.display = 'flex';
-  } else if(PIN){
-    const r = await fetch('/api/pin?verify='+encodeURIComponent(PIN));
-    const d = await r.json();
-    if(d.valid){ await enterApp(); return; }
-    sessionStorage.removeItem('tripPin'); PIN='';
-    document.getElementById('pinEntryScreen').style.display = 'flex';
-  } else {
-    document.getElementById('pinEntryScreen').style.display = 'flex';
-    document.getElementById('pinEntryInput').focus();
-  }
-})();
-
-async function setupPin(){
-  const val = document.getElementById('pinSetupInput').value.trim();
-  if(!val){ document.getElementById('pinSetupError').textContent = 'Introdu un PIN.'; return; }
-  const r = await fetch('/api/pin', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin:val})});
-  if(!r.ok){
-    const e = await r.json().catch(()=>({error:'necunoscută'}));
-    document.getElementById('pinSetupError').textContent = e.error || 'Eroare — încearcă din nou.';
-    return;
-  }
-  PIN = val; sessionStorage.setItem('tripPin', val);
-  document.getElementById('pinSetupScreen').style.display = 'none';
   await enterApp();
-}
-async function tryUnlock(){
-  const val = document.getElementById('pinEntryInput').value.trim();
-  const r = await fetch('/api/pin?verify='+encodeURIComponent(val));
-  const d = await r.json();
-  if(d.valid){
-    PIN = val; sessionStorage.setItem('tripPin', val);
-    document.getElementById('pinEntryScreen').style.display = 'none';
-    await enterApp();
-  } else {
-    document.getElementById('pinEntryError').textContent = 'PIN greșit. Încearcă din nou.';
-  }
-}
-document.addEventListener('keydown', e=>{
-  if(e.key==='Enter'){
-    if(document.getElementById('pinSetupScreen').style.display==='flex') setupPin();
-    if(document.getElementById('pinEntryScreen').style.display==='flex') tryUnlock();
-  }
-});
+})();
 
 async function enterApp(){
   document.getElementById('app').style.display = 'block';
@@ -454,9 +378,6 @@ async function enterApp(){
   const itRaw = await apiGet('itinerary_v2');
   itinerary = itRaw ? safeParse(itRaw, DEFAULT_ITINERARY) : DEFAULT_ITINERARY;
   if(!itRaw) await apiSet('itinerary_v2', JSON.stringify(itinerary));
-  const carRaw = await apiGet('car_info');
-  carInfo = carRaw ? safeParse(carRaw, DEFAULT_CAR_INFO) : DEFAULT_CAR_INFO;
-  if(!carRaw) await apiSet('car_info', JSON.stringify(carInfo));
   renderNav();
   goToPage('itinerary');
 }
@@ -500,7 +421,6 @@ function flashSaved(ok=true){
 }
 function debounce(fn, ms){ let h; return (...a)=>{ clearTimeout(h); flashSaving(); h=setTimeout(()=>fn(...a),ms); }; }
 const persistItinerary = debounce(async ()=>{ const ok = await apiSet('itinerary_v2', JSON.stringify(itinerary)); flashSaved(ok); }, 600);
-const persistCarInfo = debounce(async ()=>{ const ok = await apiSet('car_info', JSON.stringify(carInfo)); flashSaved(ok); }, 600);
 async function persistPagesList(){ flashSaving(); const ok = await apiSet('pages_list', JSON.stringify(pagesList)); flashSaved(ok); }
 function persistPageFactory(slug){ return debounce(async ()=>{ const ok = await apiSet('page:'+slug, JSON.stringify(pagesCache[slug])); flashSaved(ok); }, 600); }
 
@@ -530,20 +450,6 @@ function renderItineraryPage(){
 
     <h2 class="section-h">📄 Pagini din acest jurnal</h2>
     <div id="pagelinkList"></div>
-
-    <h2 class="section-h">🚗 Mașină & asistență rutieră</h2>
-    <div class="callout">
-      <div class="ic">🚗</div>
-      <div class="body">
-        <div class="callout-grid">
-          <div class="kv"><label>Model mașină</label><input value="${escAttr(carInfo.model)}" oninput="updateCarInfo('model',this.value)" placeholder="ex: Skoda Octavia"></div>
-          <div class="kv"><label>Nr. înmatriculare</label><input value="${escAttr(carInfo.plate)}" oninput="updateCarInfo('plate',this.value)" placeholder="CJ 00 XXX"></div>
-          <div class="kv"><label>Asigurare / RCA-CASCO</label><input value="${escAttr(carInfo.insurance)}" oninput="updateCarInfo('insurance',this.value)" placeholder="Poliță nr. ..."></div>
-          <div class="kv"><label>Asistență rutieră</label><input value="${escAttr(carInfo.assistance)}" oninput="updateCarInfo('assistance',this.value)" placeholder="Telefon non-stop"></div>
-          <div class="kv" style="grid-column:1/-1;"><label>Note</label><input value="${escAttr(carInfo.notes)}" oninput="updateCarInfo('notes',this.value)" placeholder="ex: anvelope de rezervă în portbagaj"></div>
-        </div>
-      </div>
-    </div>
 
     <h2 class="section-h">🧭 Itinerariu zi cu zi</h2>
     <table class="db-table">
@@ -640,7 +546,6 @@ function deleteDay(dayId, ev){
   itinerary = itinerary.filter(d=>d.id!==dayId);
   persistItinerary(); renderItineraryPage();
 }
-function updateCarInfo(field, value){ carInfo[field]=value; persistCarInfo(); }
 
 /* ============================================================
    CITY PAGE
@@ -734,7 +639,7 @@ function resizeImageFile(file, maxDim, quality){
 async function uploadFile(name, dataUrl, contentType){
   const base64 = dataUrl.split(',')[1];
   const r = await fetch('/api/files', {
-    method:'POST', headers:{'Content-Type':'application/json','x-trip-pin':PIN},
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({name, dataBase64:base64, contentType})
   });
   if(!r.ok){ const e = await r.json().catch(()=>({error:'necunoscută'})); throw new Error(e.error||'eroare upload'); }
@@ -744,7 +649,7 @@ async function uploadFile(name, dataUrl, contentType){
 async function deleteFileByUrl(url){
   const id = new URL(url, window.location.origin).searchParams.get('id');
   if(!id) return;
-  fetch('/api/files', {method:'DELETE', headers:{'Content-Type':'application/json','x-trip-pin':PIN}, body:JSON.stringify({id})}).catch(()=>{});
+  fetch('/api/files', {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})}).catch(()=>{});
 }
 async function onPhotoSelected(slug, input){
   const file = input.files[0]; if(!file) return; input.value='';
@@ -870,29 +775,12 @@ async function deleteCurrentPage(slug){
 }
 
 /* ============================================================
-   PIN CHANGE / EXPORT
+   EXPORT
    ============================================================ */
-function openChangePinModal(){
-  const body = document.getElementById('modalBody');
-  body.innerHTML = `<h3>Schimbă PIN-ul grupului</h3>
-    <input id="oldPin" placeholder="PIN actual" type="password">
-    <input id="newPin" placeholder="PIN nou">
-    <div class="row"><button class="btn btn-ghost" onclick="closeModal()">Anulează</button>
-      <button class="btn btn-primary" onclick="confirmChangePin()">Schimbă</button></div>`;
-  document.getElementById('modalBack').classList.add('show');
-}
-async function confirmChangePin(){
-  const oldV = document.getElementById('oldPin').value.trim();
-  const newV = document.getElementById('newPin').value.trim();
-  const r = await fetch('/api/pin', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({oldPin:oldV, newPin:newV})});
-  if(!r.ok){ alert('PIN actual incorect.'); return; }
-  PIN = newV; sessionStorage.setItem('tripPin', newV);
-  closeModal(); alert('PIN schimbat. Anunță-i pe ceilalți din grup!');
-}
 async function exportAll(){
   const allPages = {};
   for(const p of pagesList){ if(p.slug==='itinerary') continue; allPages[p.slug] = await getPage(p.slug); }
-  const bundle = {exportedAt:new Date().toISOString(), pagesList, itinerary, carInfo, pages:allPages};
+  const bundle = {exportedAt:new Date().toISOString(), pagesList, itinerary, pages:allPages};
   const blob = new Blob([JSON.stringify(bundle,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download='jurnal-calatorie-backup.json';

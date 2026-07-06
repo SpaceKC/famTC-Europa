@@ -1,6 +1,6 @@
 // netlify/functions/kv.js
 // Citire / scriere / stergere de chei text-JSON, folosind Netlify Blobs.
-// Toate cererile trebuie sa aiba header-ul x-trip-pin cu PIN-ul corect.
+// Varianta FARA PIN - oricine are linkul poate citi/scrie.
 //
 // GET    /api/kv?key=X          -> { value }
 // POST   /api/kv  { key, value } -> { ok }
@@ -16,19 +16,9 @@ function store() {
   });
 }
 
-async function checkPin(event) {
-  const pin = event.headers['x-trip-pin'] || event.headers['X-Trip-Pin'];
-  if (!pin) return false;
-  const real = await store().get('trip_pin', { type: 'text' });
-  return pin === real;
-}
-
 exports.handler = async function (event) {
   const headers = { 'Content-Type': 'application/json' };
   try {
-    if (!(await checkPin(event))) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: 'PIN lipsă sau incorect.' }) };
-    }
     const s = store();
 
     if (event.httpMethod === 'GET') {
@@ -54,6 +44,7 @@ exports.handler = async function (event) {
 
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Metodă neacceptată.' }) };
   } catch (e) {
+    console.error('DEBUG kv eroare completa:', e);
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Eroare server: ' + e.message }) };
   }
 };

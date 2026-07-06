@@ -38,19 +38,31 @@ https://jurnal-cluj-adriatica.netlify.app
 
 **Asta e tot.** Nu mai există alt pas de storage de configurat — Netlify Blobs e deja activ.
 
-## Pas 4 — Deschide linkul, setează PIN-ul, trimite-l grupului
+## Pas 4 — Configurare manuală Netlify Blobs (necesară în unele cazuri)
 
-Prima persoană care deschide linkul va vedea ecranul „Creează un PIN".
+Din cauza unei probleme cunoscute la Netlify (detectarea automată a contextului Blobs nu
+funcționează mereu la deploy-uri făcute prin linia de comandă), codul din acest proiect
+folosește configurare manuală. Ai nevoie de:
+
+1. **User settings → Applications → New access token** → generezi un token, îl copiezi
+2. Pe site-ul tău → **Project configuration → Environment variables → Add a variable**
+   → key: `BLOBS_TOKEN`, value: token-ul copiat
+3. Redeployează: `netlify deploy --prod`
+
+Dacă la deploy-ul inițial funcțiile merg deja fără eroare, poți sări peste acest pas.
+
+## Pas 5 — Deschide linkul, trimite-l grupului
+
+Oricine deschide linkul intră direct în jurnal — nu mai există ecran de PIN.
 
 ---
 
 ## De ce e mai simplu decât Vercel
 
-- **Zero pași de storage.** Nu există echivalentul „Storage → Marketplace → Upstash → conectează
-  → verifică variabilele" — Netlify Blobs se activează singur, în interiorul funcțiilor, fără
-  nicio acțiune din partea ta.
-- **Un singur loc de erori posibile**: dacă totuși ceva nu merge, verifici direct în
-  Netlify → site-ul tău → tab **Functions** → click pe funcția care a dat eroare → vezi log-ul.
+- **Zero pași de storage la configurarea inițială.** Nu există echivalentul „Storage →
+  Marketplace → Upstash → conectează → verifică variabilele".
+- **Un singur loc de erori posibile**: dacă ceva nu merge, verifici direct în
+  Netlify → site-ul tău → tab **Logs → Functions** → click pe funcția care a dat eroare.
 
 ## Limite plan gratuit (Netlify, 2026)
 
@@ -59,16 +71,11 @@ Prima persoană care deschide linkul va vedea ecranul „Creează un PIN".
 - Poze/documente sub ~5MB fiecare (limita per cerere pentru funcțiile Netlify).
 - Fără card, fără cost, atât timp cât rămâi sub aceste limite (foarte generoase pentru acest caz).
 
-## De reținut despre PIN
+## De reținut — FĂRĂ PIN
 
-PIN-ul e verificat pe server la fiecare cerere de citire/scriere a datelor text (itinerar, note)
-și la încărcarea/ștergerea de poze și documente. Rămâne un filtru simplu, nu o parolă criptată —
-suficient să țină departe pe oricine nu are linkul și PIN-ul, dar nu protecție de nivel bancar.
-
-O mică notă tehnică: afișarea propriu-zisă a unei poze/document (adică deschiderea linkului
-`/api/files?id=...` într-un tag `<img>`) nu cere PIN, ca poza să se poată încărca direct în
-pagină — dar ID-urile sunt aleatorii și lungi, deci practic imposibil de ghicit fără acces
-la jurnal.
+Această variantă nu mai are niciun filtru de acces. Oricine găsește linkul poate vedea,
+edita sau șterge orice din jurnal (itinerar, note, poze, documente). E o alegere conștientă
+pentru simplitate — dacă vrei un filtru minim mai târziu, se poate adăuga din nou.
 
 ## Modificări ulterioare
 

@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Cluj → Adriatica — Jurnal de Călătorie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF; --bg-hover:#F1F1EF; --bg-callout-blue:#E7F3FE; --bg-callout-gray:#F1F1EF;
+    --border:#E9E9E7;
+    --text:#37352F; --text-light:#787774; --text-faint:#9B9A97;
+    --blue:#2383E2; --red:#EB5757;
+    --font:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:var(--font); font-size:15px; line-height:1.55; min-height:100vh; -webkit-font-smoothing:antialiased;}
+  button{font-family:inherit;}
+  input,textarea{font-family:var(--font); font-size:15px;}
+  a{color:var(--blue);}
+
+  #boot{min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; text-align:center; padding:24px;}
+  #boot .mark{font-size:20px; font-weight:700;}
+  #boot .sub{color:var(--text-light); font-size:13px;}
+  .spinner{width:22px;height:22px;border-radius:50%; border:2.5px solid var(--border); border-top-color:var(--blue); animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .pin-wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
+  .pin-card{max-width:360px; width:100%; text-align:center;}
+  .pin-icon{font-size:40px; margin-bottom:14px;}
+  .pin-card h1{font-size:19px; font-weight:700; margin:0 0 6px;}
+  .pin-card p{color:var(--text-light); font-size:13.5px; margin:0 0 20px; line-height:1.5;}
+  .pin-input{width:100%; padding:11px 14px; font-size:18px; letter-spacing:3px; text-align:center; border:none; border-bottom:2px solid var(--border); background:transparent; color:var(--text); font-family:var(--font-mono); margin-bottom:16px;}
+  .pin-input:focus{outline:none; border-color:var(--blue);}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; border:none; border-radius:4px; padding:9px 16px; font-size:14px; font-weight:600; cursor:pointer; min-height:38px;}
+  .btn-primary{background:var(--text); color:#fff; width:100%;}
+  .btn-primary:hover{opacity:.88;}
+  .btn-ghost{background:transparent; color:var(--text-light); border:1px solid var(--border);}
+  .btn-danger{background:none; color:var(--red); border:1px solid var(--red);}
+  .pin-error{color:var(--red); font-size:12.5px; margin:-8px 0 12px; min-height:16px;}
+  .pin-note{font-size:11.5px; color:var(--text-faint); margin-top:16px;}
+
+  #app{display:none;}
+  .topbar{position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; padding:9px 12px;}
+  .hamburger{background:none; border:none; color:var(--text); font-size:19px; cursor:pointer; padding:4px 6px; min-height:34px;}
+  .topbar .title{font-weight:600; font-size:14px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-light);}
+  .topbar .save-dot{width:6px;height:6px;border-radius:50%; background:#2F9E44; flex-shrink:0;}
+  .topbar .save-dot.saving{background:#D9A116;}
+  .shell{display:flex; min-height:calc(100vh - 46px);}
+
+  .scrim{position:fixed; inset:0; background:rgba(15,15,15,.35); z-index:35; opacity:0; pointer-events:none; transition:opacity .2s;}
+  .scrim.show{opacity:1; pointer-events:auto;}
+  .sidebar{position:fixed; top:0; left:0; bottom:0; width:78%; max-width:260px; background:#FBFBFA; z-index:40; transform:translateX(-100%); transition:transform .2s; display:flex; flex-direction:column; border-right:1px solid var(--border); font-size:14px;}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-head{padding:14px 14px 8px; font-weight:700; font-size:13.5px; color:var(--text-light);}
+  .nav-list{list-style:none; margin:0; padding:2px 8px; overflow-y:auto; flex:1;}
+  .nav-item{display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:4px; cursor:pointer; color:var(--text-light); user-select:none;}
+  .nav-item .ic{font-size:14px; width:16px; text-align:center; flex-shrink:0;}
+  .nav-item .lbl{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .nav-item:hover{background:var(--bg-hover);}
+  .nav-item.active{background:var(--bg-hover); color:var(--text); font-weight:600;}
+  .nav-add{margin:8px 8px 12px; padding:5px 8px; border:none; text-align:left; font-size:13px; color:var(--text-faint); cursor:pointer; background:none;}
+  .nav-add:hover{color:var(--blue);}
+  .sidebar-foot{padding:10px 14px 14px; border-top:1px solid var(--border); font-size:10.5px; color:var(--text-faint); line-height:1.6;}
+  .sidebar-foot a{color:var(--text-faint);}
+
+  @media (min-width:900px){ .hamburger{display:none;} .scrim{display:none;}
+    .sidebar{position:sticky; transform:none; width:230px; max-width:230px; height:calc(100vh - 46px); background:var(--bg);} }
+
+  .main{flex:1; min-width:0; padding:0 18px 100px;}
+  @media (min-width:900px){ .main{padding:0 0 100px;} }
+  .doc{max-width:760px; margin:0 auto; padding-top:28px;}
+  @media (min-width:900px){ .doc{padding-top:60px;} }
+
+  .crumbs{font-size:12px; color:var(--text-faint); margin-bottom:10px;}
+  .crumbs a{color:var(--text-faint); text-decoration:none;}
+  .crumbs a:hover{text-decoration:underline;}
+  .page-icon{font-size:52px; line-height:1; margin-bottom:6px;}
+  .page-icon[contenteditable]{cursor:text; display:inline-block;}
+  h1.page-title{font-size:clamp(26px,5vw,34px); font-weight:800; margin:0 0 6px; line-height:1.2;}
+  h1.page-title[contenteditable]:focus{outline:none; background:var(--bg-hover); border-radius:3px;}
+  .date-input{font-family:var(--font-mono); font-size:12.5px; border:none; background:none; color:var(--text-faint); padding:0; margin-bottom:22px; display:block; border-bottom:1px dotted transparent;}
+  .date-input:hover{border-bottom-color:var(--border);}
+  .date-input:focus{outline:none; color:var(--text); border-bottom:1px solid var(--blue);}
+
+  .props-row{display:flex; flex-wrap:wrap; gap:22px; padding:14px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin-bottom:26px;}
+  .props-row .prop .l{font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); margin-bottom:2px;}
+  .props-row .prop .v{font-family:var(--font-mono); font-size:15px; font-weight:600;}
+
+  h2.section-h{font-size:18px; font-weight:700; margin:34px 0 10px; display:flex; align-items:center; gap:8px;}
+  h2.section-h:first-of-type{margin-top:8px;}
+  p.section-hint{font-size:12.5px; color:var(--text-faint); margin:-4px 0 12px;}
+
+  .pagelink-row{display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:1px solid var(--border); cursor:pointer; border-radius:4px;}
+  .pagelink-row:hover{background:var(--bg-hover);}
+  .pagelink-row .ic{font-size:18px; flex-shrink:0; width:24px; text-align:center;}
+  .pagelink-row .t{font-weight:500; flex:1;}
+  .pagelink-row .d{font-family:var(--font-mono); font-size:12px; color:var(--text-faint);}
+  .pagelink-row .arrow{color:var(--text-faint); font-size:13px;}
+
+  .callout{background:var(--bg-callout-blue); border-radius:4px; padding:14px 16px; margin:20px 0; display:flex; gap:12px;}
+  .callout .ic{font-size:20px; flex-shrink:0;}
+  .callout .body{flex:1; min-width:0;}
+  .callout-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px 18px;}
+  @media (max-width:480px){ .callout-grid{grid-template-columns:1fr;} }
+  .kv{display:flex; flex-direction:column;}
+  .kv label{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em;}
+  .kv input{border:none; border-bottom:1px solid transparent; background:transparent; color:var(--text); font-size:13.5px; padding:2px 0;}
+  .kv input:hover{border-bottom-color:var(--border);}
+  .kv input:focus{outline:none; border-bottom-color:var(--blue);}
+
+  .db-table{width:100%; border-collapse:collapse; margin-bottom:6px; font-size:13.5px;}
+  .db-table thead th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--border);}
+  .day-row td{padding:0; border:none;}
+  .day-hd{display:flex; align-items:center; gap:8px; padding:16px 6px 6px; cursor:pointer; user-select:none;}
+  .day-hd .chev{font-size:10px; color:var(--text-faint); transition:transform .15s; width:12px;}
+  .day-group.collapsed .chev{transform:rotate(-90deg);}
+  .day-hd input.day-title{font-weight:700; font-size:14px; border:none; background:transparent; padding:1px 3px; border-radius:3px; color:var(--text); min-width:56px;}
+  .day-hd input.day-title:focus{outline:none; background:var(--bg-hover);}
+  .day-hd input.day-date{font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint); border:none; background:transparent; width:82px; padding:1px 3px; border-radius:3px;}
+  .day-hd input.day-date:focus{outline:none; background:var(--bg-hover);}
+  .day-hd input.day-route{flex:1; min-width:80px; font-size:12.5px; color:var(--text-faint); border:none; background:transparent; padding:1px 3px; border-radius:3px;}
+  .day-hd input.day-route:focus{outline:none; background:var(--bg-hover);}
+  .day-hd .count{font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint);}
+  .day-hd .day-del{background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:13px; padding:3px 5px; opacity:0;}
+  .day-hd:hover .day-del{opacity:1;}
+  .day-hd .day-del:hover{color:var(--red);}
+  .day-group.long .day-hd input.day-title{color:var(--red);}
+  .item-tr td{border-bottom:1px solid var(--border); padding:0;}
+  .item-tr{transition:background .1s;}
+  .item-tr:hover td{background:var(--bg-hover);}
+  .cell-icon{width:30px;}
+  .cell-icon input{width:26px; text-align:center; font-size:15px; border:none; background:transparent; padding:6px 0;}
+  .cell-action{width:88px;}
+  .cell-action input{width:100%; font-weight:600; font-size:12px; color:var(--text-light); border:none; background:transparent; padding:6px 4px;}
+  .cell-place input{width:100%; font-size:13.5px; border:none; background:transparent; padding:6px 4px;}
+  .cell-note input{width:100%; font-size:12.5px; color:var(--text-light); border:none; background:transparent; padding:6px 4px;}
+  .cell-del{width:26px;}
+  .cell-del button{background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:13px; padding:4px; opacity:0;}
+  .item-tr:hover .cell-del button{opacity:1;}
+  .cell-del button:hover{color:var(--red);}
+  td input:focus{outline:none; background:var(--bg-hover); border-radius:3px;}
+  .add-item-row td{padding:6px 4px;}
+  .add-item-btn{background:none; border:none; color:var(--text-faint); font-size:12.5px; cursor:pointer; padding:4px 4px;}
+  .add-item-btn:hover{color:var(--blue);}
+  .add-day-btn{display:block; width:100%; text-align:left; padding:12px 6px; border:none; border-top:1px dashed var(--border); background:none; color:var(--text-faint); font-size:13.5px; cursor:pointer; margin-top:8px;}
+  .add-day-btn:hover{color:var(--blue);}
+
+  .doc-section{margin-bottom:8px;}
+  textarea.field{width:100%; border:none; border-left:2px solid var(--border); padding:2px 0 2px 12px; background:transparent; color:var(--text); resize:vertical; min-height:60px; line-height:1.6; font-size:14px;}
+  textarea.field:focus{outline:none; border-left-color:var(--blue);}
+  textarea.journal{min-height:130px;}
+
+  .photo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin-top:10px;}
+  .photo-thumb{position:relative; border-radius:4px; overflow:hidden; aspect-ratio:1; background:var(--bg-hover);}
+  .photo-thumb img{width:100%; height:100%; object-fit:cover; cursor:pointer; display:block;}
+  .photo-thumb .rm{position:absolute; top:4px; right:4px; background:rgba(30,30,30,.65); color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer;}
+  .photo-thumb.loading{display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:10.5px;}
+  .upload-btn{display:inline-flex; align-items:center; gap:6px; background:none; border:1px dashed var(--border); border-radius:4px; padding:7px 11px; font-size:12.5px; color:var(--text-light); cursor:pointer; margin-top:10px;}
+  .upload-btn:hover{border-color:var(--blue); color:var(--blue);}
+  .upload-btn input{display:none;}
+
+  .doc-row{display:flex; align-items:center; gap:9px; padding:7px 4px; border-bottom:1px solid var(--border);}
+  .doc-row .di{font-size:15px; flex-shrink:0;}
+  .doc-row .dn{flex:1; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .doc-row .dsz{font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint); flex-shrink:0;}
+  .doc-row button{background:none; border:none; cursor:pointer; font-size:14px; padding:3px 5px; flex-shrink:0;}
+  .doc-row .open{color:var(--text-light);}
+  .doc-row .rm{color:var(--red);}
+
+  .lightbox{position:fixed; inset:0; background:rgba(15,15,15,.9); z-index:60; display:none; align-items:center; justify-content:center; padding:20px;}
+  .lightbox.show{display:flex;}
+  .lightbox img{max-width:100%; max-height:88vh; border-radius:4px;}
+  .lightbox .close{position:absolute; top:16px; right:18px; background:none; border:none; color:#fff; font-size:28px; cursor:pointer;}
+
+  .toast{position:fixed; bottom:18px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--text); color:#fff; padding:7px 14px; border-radius:4px; font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:70;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .danger-zone{border-top:1px solid var(--border); padding-top:16px; margin-top:30px;}
+  .danger-zone h2{color:var(--red);}
+
+  .modal-back{position:fixed; inset:0; background:rgba(15,15,15,.45); z-index:50; display:none; align-items:center; justify-content:center; padding:20px;}
+  .modal-back.show{display:flex;}
+  .modal{background:var(--bg); border-radius:6px; padding:20px; max-width:340px; width:100%; box-shadow:0 4px 20px rgba(0,0,0,.15);}
+  .modal h3{font-size:15px; font-weight:700; margin:0 0 12px;}
+  .modal input{width:100%; padding:8px 0; border:none; border-bottom:1px solid var(--border); margin-bottom:14px; background:none; font-size:14px;}
+  .modal input:focus{outline:none; border-bottom-color:var(--blue);}
+  .modal .row{display:flex; gap:10px;}
+  .modal .row .btn{flex:1;}
+  .empty-msg{color:var(--text-faint); font-size:12.5px; padding:6px 0;}
+</style>
+</head>
+<body>
+
+<div id="boot"><div class="spinner"></div><div class="mark">Jurnal de Călătorie</div><div class="sub">Se încarcă...</div></div>
+
+<div class="pin-wrap" id="pinSetupScreen" style="display:none;">
+  <div class="pin-card">
+    <div class="pin-icon">✎</div>
+    <h1>Creează un PIN</h1>
+    <p>Jurnal comun pentru tot grupul — oricine are linkul și PIN-ul poate vedea și edita totul (filtru simplu, nu o parolă securizată).</p>
+    <input class="pin-input" id="pinSetupInput" inputmode="numeric" maxlength="8" placeholder="ex: 2607">
+    <div class="pin-error" id="pinSetupError"></div>
+    <button class="btn btn-primary" onclick="setupPin()">Salvează PIN-ul și intră</button>
+    <div class="pin-note">Reține-l și trimite-l celorlalți din grup.</div>
+  </div>
+</div>
+
+<div class="pin-wrap" id="pinEntryScreen" style="display:none;">
+  <div class="pin-card">
+    <div class="pin-icon">🔒</div>
+    <h1>Jurnal de Călătorie</h1>
+    <p>Introdu PIN-ul grupului pentru a deschide jurnalul.</p>
+    <input class="pin-input" id="pinEntryInput" inputmode="numeric" maxlength="8" placeholder="••••">
+    <div class="pin-error" id="pinEntryError"></div>
+    <button class="btn btn-primary" onclick="tryUnlock()">Deblochează</button>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleDrawer(true)">☰</button>
+    <div class="title" id="topTitle">Jurnal de Călătorie</div>
+    <div class="save-dot" id="saveDot"></div>
+  </div>
+  <div class="shell">
+    <div class="scrim" id="scrim" onclick="toggleDrawer(false)"></div>
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-head">🗺️ Cluj → Adriatica</div>
+      <ul class="nav-list" id="navList"></ul>
+      <button class="nav-add" onclick="openAddPageModal()">+ Adaugă pagină</button>
+      <div class="sidebar-foot">
+        Jurnal comun — editabil de oricine are PIN-ul.<br>
+        <a href="#" onclick="openChangePinModal();return false;">Schimbă PIN</a> · <a href="#" onclick="exportAll();return false;">Backup</a>
+      </div>
+    </div>
+    <div class="main"><div class="doc" id="pageContent"></div></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="close" onclick="closeLightbox()">×</button>
+  <img id="lightboxImg" src="" onclick="event.stopPropagation()">
+</div>
+<div class="modal-back" id="modalBack"><div class="modal" id="modalBody"></div></div>
+<div class="toast" id="toast">✓ Salvat</div>
+
+<script>
+/* ============================================================
+   API HELPERS (server-backed: Upstash Redis + Vercel Blob)
+   ============================================================ */
+let PIN = sessionStorage.getItem('tripPin') || '';
+
+async function apiGet(key){
+  try{
+    const r = await fetch('/api/kv?key='+encodeURIComponent(key), { headers:{'x-trip-pin':PIN} });
+    if(!r.ok) return null;
+    const d = await r.json();
+    return d.value;
+  }catch(e){ return null; }
+}
+async function apiSet(key, value){
+  try{
+    const r = await fetch('/api/kv', {
+      method:'POST', headers:{'Content-Type':'application/json','x-trip-pin':PIN},
+      body: JSON.stringify({key, value})
+    });
+    return r.ok;
+  }catch(e){ return false; }
+}
+async function apiDel(key){
+  try{ await fetch('/api/kv?key='+encodeURIComponent(key), { method:'DELETE', headers:{'x-trip-pin':PIN} }); }catch(e){}
+}
+function safeParse(str, fb){ try{ return JSON.parse(str); }catch(e){ return fb; } }
+
+/* ============================================================
+   DEFAULT DATA
+   ============================================================ */
+const DEFAULT_PAGES_LIST = [
+  {slug:'itinerary', title:'Itinerariu', icon:'🗺️', dates:'09–23.07', system:true},
+  {slug:'budapesta', title:'Budapesta', icon:'🏛️', dates:'09–10.07'},
+  {slug:'praga', title:'Praga', icon:'🌉', dates:'10–12.07'},
+  {slug:'amsterdam', title:'Amsterdam', icon:'🚲', dates:'12–14.07'},
+  {slug:'schaan', title:'Schaan (Liechtenstein)', icon:'⛰️', dates:'14–15.07'},
+  {slug:'rimini', title:'Rimini', icon:'🏖️', dates:'15–20.07'},
+  {slug:'pisa', title:'Pisa / Toscana', icon:'🍷', dates:'20–21.07'},
+  {slug:'pula', title:'Pula (Croația)', icon:'🏺', dates:'21–22.07'},
+  {slug:'viena', title:'Viena', icon:'🎻', dates:'22–23.07'},
+];
+
+function mk(icon, action, place, note){ return {id:'i'+Math.random().toString(36).slice(2,9), icon, action, place, note}; }
+
+const DEFAULT_ITINERARY = [
+  {id:'d1', title:'Ziua 1', date:'09.07', route:'Cluj → Budapesta', long:false, items:[
+    mk('🚗','Drum','Cluj → Budapesta','420 km · ~4h30 · RO → HU'),
+    mk('🪪','Taxe','RO rovinietă + HU e-vinietă (10 zile)',''),
+    mk('🚦','Viteză','RO 130 · HU 130',''),
+    mk('🛏️','Cazare','DANUBE 3 bedrooms — Boráros tér 6, Budapesta',''),
+    mk('🎭','Eveniment','La Traviata — Opera Națională Maghiară','9 iulie'),
+  ]},
+  {id:'d2', title:'Zilele 2–3', date:'10–12.07', route:'Budapesta → Praga', long:true, items:[
+    mk('🚗','Drum','Budapesta → Praga','530 km · ~5h30 · HU → SK → CZ'),
+    mk('☕','Oprire','Bratislava (SK) ~km 200','Castel + centru istoric, 1–1,5h'),
+    mk('🪪','Taxe','SK e-vinietă + CZ e-známka (10 zile)',''),
+    mk('🚦','Viteză','HU 130 · SK 130 · CZ 130',''),
+    mk('🛏️','Cazare','ANESKA by Charles Bridge 2, Praga',''),
+  ]},
+  {id:'d3', title:'Zilele 4–5', date:'12–14.07', route:'Praga → Amsterdam', long:true, items:[
+    mk('🚗','Drum','Praga → Amsterdam','890 km · ~10h · CZ → DE → NL'),
+    mk('☕','Oprire','Erfurt (DE) ~km 420','Centru medieval, Krämerbrücke, 1–1,5h'),
+    mk('🪪','Taxe','DE/NL gratuit',''),
+    mk('🛏️','Cazare','Amsterdam — 2 nopți','[de completat]'),
+    mk('🎉','Eveniment','Pure Markt (12.07) · Julidans (până pe 14.07)',''),
+  ]},
+  {id:'d4', title:'Ziua 6*', date:'14–15.07', route:'Amsterdam → Schaan', long:true, items:[
+    mk('🚗','Drum','Amsterdam → Schaan','950 km · ~11h · NL→DE→LU→FR→CH→LI'),
+    mk('☕','Oprire','Luxemburg-Ville ~km 380','Ville Haute, max 1,5–2h'),
+    mk('🪪','Taxe','CH vinietă anuală obligatorie (40 CHF)',''),
+    mk('🚦','Viteză','FR 130 · CH 120',''),
+    mk('🛏️','Cazare','KLOSTER by b-smart, Schaan',''),
+  ]},
+  {id:'d5', title:'Zilele 7–11', date:'15–20.07', route:'Schaan → Rimini', long:false, items:[
+    mk('🚗','Drum','Schaan → Rimini','430 km · ~6h · LI → CH → IT'),
+    mk('🏔️','Oprire','St. Moritz (CH) ~km 180','Plimbare lac, deja planificat'),
+    mk('🪪','Taxe','IT taxă distanță (~7–9€/100km)',''),
+    mk('🛏️','Cazare','Rimini — 5 nopți','[de completat]'),
+    mk('🎉','Eveniment','Rimini Comix (16–19.07) · Shopping Night miercurea',''),
+  ]},
+  {id:'d6', title:'Ziua 12', date:'20–21.07', route:'Rimini → Pisa / Toscana', long:false, items:[
+    mk('🚗','Drum','Rimini → Pisa (San Marino, Montepulciano, San Gimignano)','380 km'),
+    mk('🛏️','Cazare','CASA SAN MICHELE, Pisa',''),
+    mk('🎉','Eveniment','Saldi estivi activi în toată Toscana',''),
+  ]},
+  {id:'d7', title:'Ziua 13', date:'21–22.07', route:'Pisa → Pula', long:true, items:[
+    mk('🚗','Drum','Pisa → Pula','620 km · ~7h · IT → SI → HR'),
+    mk('☕','Oprire','Padova / Veneția-Mestre ~km 300',''),
+    mk('🪪','Taxe','SI e-vinjeta (7 zile) + HR taxă distanță',''),
+    mk('🛏️','Cazare','Pula — 1 noapte','[de completat]'),
+  ]},
+  {id:'d8', title:'Ziua 14', date:'22–23.07', route:'Pula → Viena', long:true, items:[
+    mk('🚗','Drum','Pula → Viena','560 km · ~6h30 · HR → SI → AT'),
+    mk('☕','Oprire','Ljubljana (SI) ~km 150–200',''),
+    mk('🪪','Taxe','AT e-vinietă (10 zile)',''),
+    mk('🛏️','Cazare','Viena — 1 noapte','[de completat]'),
+    mk('🎉','Eveniment','Filmfestival Rathausplatz — tribut Amy Winehouse','23 iulie'),
+  ]},
+  {id:'d9', title:'Ziua 14', date:'23.07', route:'Viena → Cluj', long:true, items:[
+    mk('🚗','Drum','Viena → Cluj','660 km · ~7h · AT → HU → RO'),
+    mk('☕','Oprire','Szeged (HU) ~km 330','Piața Dom, 45–60 min'),
+    mk('🪪','Taxe','HU e-vinietă + RO rovinietă',''),
+    mk('🏠','Sosire','Acasă!',''),
+  ]},
+];
+
+const DEFAULT_CAR_INFO = { model:'', plate:'', insurance:'', assistance:'', notes:'' };
+
+const DEFAULT_PAGE_CONTENT = {
+  budapesta:{countries:'Sosire din România prin Ungaria (Cluj → Budapesta, 420 km).',
+    restrictions:'RO: rovinietă valabilă. HU: e-vinietă (D1), recomandat 10 zile.\nLimite: RO 130 · HU autostradă 130, expres 110, localități 50.',
+    events:'• "La Traviata" — Opera Națională Maghiară, 9 iulie.\n• Solduri de vară active în mallurile din Budapesta.', journal:''},
+  praga:{countries:'Ungaria → Slovacia (tranzit scurt) → Cehia.',
+    restrictions:'SK: e-vinietă 10 zile (14,40€). CZ: e-známka 10 zile (~310 CZK).\nLimite: SK 130 · CZ 130, atenție radare.',
+    events:'• Solduri de vară (výprodeje) active.\n• Bohemia Jazzfest începe pe 14 iulie — după plecare.', journal:''},
+  amsterdam:{countries:'Cehia → Germania → Olanda.',
+    restrictions:'DE/NL: fără vinietă.\nLimite: DE fără limită generală · NL 100/130.',
+    events:'• Pure Markt — Amstelpark, 12 iulie.\n• Julidans, până pe 14 iulie.\n• Zomerkoopjes (solduri) active.', journal:''},
+  schaan:{countries:'Olanda → Germania → Luxemburg → Franța → Elveția → Liechtenstein.',
+    restrictions:'CH: vinietă anuală obligatorie (40 CHF), fără variantă scurtă.\nLimite: FR 130 (110 ploaie) · CH 120.',
+    events:'Sejur scurt (1 noapte) — recomandă o plimbare serală în Vaduz.', journal:''},
+  rimini:{countries:'Liechtenstein → Elveția → Italia.',
+    restrictions:'IT: taxă drum pe distanță (~7–9€/100km).\nLimite: CH 120 · IT 130.',
+    events:'• Rimini Comix — 16–19 iulie.\n• Rimini Shopping Night — în fiecare miercuri.\n• Saldi estivi active din 4 iulie.', journal:''},
+  pisa:{countries:'Italia (+ San Marino).',
+    restrictions:'Taxe italiene pe distanță.\nLimite: IT 130 · San Marino 70.',
+    events:'Saldi estivi active și în Toscana pe toată perioada sejurului.', journal:''},
+  pula:{countries:'Italia → Slovenia (tranzit scurt) → Croația.',
+    restrictions:'SI: e-vinjeta 7 zile. HR: taxă la barieră.\nLimite: SI 130 · HR 130.',
+    events:'• Concert Moby — Arena Pula, 23 iulie (după plecare).\n• Solduri fără dată fixă, iunie–august.', journal:''},
+  viena:{countries:'Croația → Slovenia → Austria.',
+    restrictions:'AT: e-vinietă 10 zile.\nLimite: HR/SI 130 · AT 130.',
+    events:'• Filmfestival Rathausplatz — intrare liberă, tribut Amy Winehouse pe 23 iulie.\n• Fără perioadă oficială de solduri.', journal:''}
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let pagesList = [], itinerary = [], carInfo = {}, pagesCache = {}, currentSlug = 'itinerary';
+
+/* ============================================================
+   BOOT / PIN (server-verified via /api/pin)
+   ============================================================ */
+(async function boot(){
+  document.getElementById('boot').style.display = 'none';
+  let isSet = false;
+  try{
+    const r = await fetch('/api/pin');
+    const d = await r.json();
+    isSet = d.isSet;
+  }catch(e){}
+  if(!isSet){
+    document.getElementById('pinSetupScreen').style.display = 'flex';
+  } else if(PIN){
+    const r = await fetch('/api/pin?verify='+encodeURIComponent(PIN));
+    const d = await r.json();
+    if(d.valid){ await enterApp(); return; }
+    sessionStorage.removeItem('tripPin'); PIN='';
+    document.getElementById('pinEntryScreen').style.display = 'flex';
+  } else {
+    document.getElementById('pinEntryScreen').style.display = 'flex';
+    document.getElementById('pinEntryInput').focus();
+  }
+})();
+
+async function setupPin(){
+  const val = document.getElementById('pinSetupInput').value.trim();
+  if(!val){ document.getElementById('pinSetupError').textContent = 'Introdu un PIN.'; return; }
+  const r = await fetch('/api/pin', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin:val})});
+  if(!r.ok){
+    const e = await r.json().catch(()=>({error:'necunoscută'}));
+    document.getElementById('pinSetupError').textContent = e.error || 'Eroare — încearcă din nou.';
+    return;
+  }
+  PIN = val; sessionStorage.setItem('tripPin', val);
+  document.getElementById('pinSetupScreen').style.display = 'none';
+  await enterApp();
+}
+async function tryUnlock(){
+  const val = document.getElementById('pinEntryInput').value.trim();
+  const r = await fetch('/api/pin?verify='+encodeURIComponent(val));
+  const d = await r.json();
+  if(d.valid){
+    PIN = val; sessionStorage.setItem('tripPin', val);
+    document.getElementById('pinEntryScreen').style.display = 'none';
+    await enterApp();
+  } else {
+    document.getElementById('pinEntryError').textContent = 'PIN greșit. Încearcă din nou.';
+  }
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    if(document.getElementById('pinSetupScreen').style.display==='flex') setupPin();
+    if(document.getElementById('pinEntryScreen').style.display==='flex') tryUnlock();
+  }
+});
+
+async function enterApp(){
+  document.getElementById('app').style.display = 'block';
+  const plRaw = await apiGet('pages_list');
+  pagesList = plRaw ? safeParse(plRaw, DEFAULT_PAGES_LIST) : DEFAULT_PAGES_LIST;
+  if(!plRaw) await apiSet('pages_list', JSON.stringify(pagesList));
+  const itRaw = await apiGet('itinerary_v2');
+  itinerary = itRaw ? safeParse(itRaw, DEFAULT_ITINERARY) : DEFAULT_ITINERARY;
+  if(!itRaw) await apiSet('itinerary_v2', JSON.stringify(itinerary));
+  const carRaw = await apiGet('car_info');
+  carInfo = carRaw ? safeParse(carRaw, DEFAULT_CAR_INFO) : DEFAULT_CAR_INFO;
+  if(!carRaw) await apiSet('car_info', JSON.stringify(carInfo));
+  renderNav();
+  goToPage('itinerary');
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+function toggleDrawer(open){
+  document.getElementById('sidebar').classList.toggle('open', open);
+  document.getElementById('scrim').classList.toggle('show', open);
+}
+function renderNav(){
+  const ul = document.getElementById('navList'); ul.innerHTML='';
+  pagesList.forEach(p=>{
+    const li = document.createElement('li');
+    li.className = 'nav-item' + (p.slug===currentSlug?' active':'');
+    li.innerHTML = `<span class="ic">${p.icon||'📍'}</span><span class="lbl">${escapeHtml(p.title)}</span>`;
+    li.onclick = ()=>{ goToPage(p.slug); toggleDrawer(false); };
+    ul.appendChild(li);
+  });
+}
+async function goToPage(slug){
+  currentSlug = slug; renderNav();
+  const p = pagesList.find(x=>x.slug===slug);
+  document.getElementById('topTitle').textContent = p ? p.title : 'Jurnal';
+  if(slug==='itinerary') renderItineraryPage();
+  else await renderCityPage(slug);
+  window.scrollTo(0,0);
+}
+
+/* ============================================================
+   SAVE HELPERS
+   ============================================================ */
+function flashSaving(){ document.getElementById('saveDot').classList.add('saving'); }
+function flashSaved(ok=true){
+  document.getElementById('saveDot').classList.remove('saving');
+  const t = document.getElementById('toast');
+  t.textContent = ok ? '✓ Salvat' : '⚠ Eroare la salvare';
+  t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 1300);
+}
+function debounce(fn, ms){ let h; return (...a)=>{ clearTimeout(h); flashSaving(); h=setTimeout(()=>fn(...a),ms); }; }
+const persistItinerary = debounce(async ()=>{ const ok = await apiSet('itinerary_v2', JSON.stringify(itinerary)); flashSaved(ok); }, 600);
+const persistCarInfo = debounce(async ()=>{ const ok = await apiSet('car_info', JSON.stringify(carInfo)); flashSaved(ok); }, 600);
+async function persistPagesList(){ flashSaving(); const ok = await apiSet('pages_list', JSON.stringify(pagesList)); flashSaved(ok); }
+function persistPageFactory(slug){ return debounce(async ()=>{ const ok = await apiSet('page:'+slug, JSON.stringify(pagesCache[slug])); flashSaved(ok); }, 600); }
+
+/* ============================================================
+   ITINERARY PAGE (day-grouped, real table)
+   ============================================================ */
+let collapsedDays = {};
+
+function renderItineraryPage(){
+  const c = document.getElementById('pageContent');
+  const totalKm = itinerary.reduce((s,d)=>{
+    const drumItem = d.items.find(i=>i.action.toLowerCase().includes('drum'));
+    const m = drumItem ? drumItem.note.match(/(\d+)\s*km/) : null;
+    return s + (m ? parseInt(m[1]) : 0);
+  }, 0);
+
+  let html = `
+    <div class="page-icon">🗺️</div>
+    <h1 class="page-title">Cluj → Adriatica → Cluj</h1>
+    <input class="date-input" value="9 – 23 iulie 2026" disabled>
+
+    <div class="props-row">
+      <div class="prop"><div class="l">Distanță</div><div class="v">${totalKm} km</div></div>
+      <div class="prop"><div class="l">Zile</div><div class="v">${itinerary.length}</div></div>
+      <div class="prop"><div class="l">Țări</div><div class="v">9</div></div>
+    </div>
+
+    <h2 class="section-h">📄 Pagini din acest jurnal</h2>
+    <div id="pagelinkList"></div>
+
+    <h2 class="section-h">🚗 Mașină & asistență rutieră</h2>
+    <div class="callout">
+      <div class="ic">🚗</div>
+      <div class="body">
+        <div class="callout-grid">
+          <div class="kv"><label>Model mașină</label><input value="${escAttr(carInfo.model)}" oninput="updateCarInfo('model',this.value)" placeholder="ex: Skoda Octavia"></div>
+          <div class="kv"><label>Nr. înmatriculare</label><input value="${escAttr(carInfo.plate)}" oninput="updateCarInfo('plate',this.value)" placeholder="CJ 00 XXX"></div>
+          <div class="kv"><label>Asigurare / RCA-CASCO</label><input value="${escAttr(carInfo.insurance)}" oninput="updateCarInfo('insurance',this.value)" placeholder="Poliță nr. ..."></div>
+          <div class="kv"><label>Asistență rutieră</label><input value="${escAttr(carInfo.assistance)}" oninput="updateCarInfo('assistance',this.value)" placeholder="Telefon non-stop"></div>
+          <div class="kv" style="grid-column:1/-1;"><label>Note</label><input value="${escAttr(carInfo.notes)}" oninput="updateCarInfo('notes',this.value)" placeholder="ex: anvelope de rezervă în portbagaj"></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-h">🧭 Itinerariu zi cu zi</h2>
+    <table class="db-table">
+      <thead><tr><th class="cell-icon"></th><th class="cell-action">Tip</th><th>Loc</th><th>Notă</th><th class="cell-del"></th></tr></thead>
+  `;
+
+  itinerary.forEach(day=>{
+    const isCollapsed = collapsedDays[day.id];
+    html += `<tbody class="day-group ${day.long?'long':''} ${isCollapsed?'collapsed':''}" data-day="${day.id}">
+      <tr class="day-row"><td colspan="5">
+        <div class="day-hd" onclick="toggleDayCollapse('${day.id}', event)">
+          <span class="chev">▾</span>
+          <input class="day-title" value="${escAttr(day.title)}" oninput="updateDay('${day.id}','title',this.value)" onclick="event.stopPropagation()">
+          <input class="day-date" value="${escAttr(day.date)}" oninput="updateDay('${day.id}','date',this.value)" onclick="event.stopPropagation()">
+          <input class="day-route" value="${escAttr(day.route)}" oninput="updateDay('${day.id}','route',this.value)" onclick="event.stopPropagation()">
+          <span class="count">${day.items.length}</span>
+          <button class="day-del" onclick="deleteDay('${day.id}', event)" title="Șterge ziua">🗑</button>
+        </div>
+      </td></tr>`;
+    day.items.forEach(item=>{
+      html += `<tr class="item-tr">
+        <td class="cell-icon"><input value="${escAttr(item.icon)}" oninput="updateItem('${day.id}','${item.id}','icon',this.value)"></td>
+        <td class="cell-action"><input value="${escAttr(item.action)}" oninput="updateItem('${day.id}','${item.id}','action',this.value)"></td>
+        <td class="cell-place"><input value="${escAttr(item.place)}" oninput="updateItem('${day.id}','${item.id}','place',this.value)"></td>
+        <td class="cell-note"><input value="${escAttr(item.note)}" oninput="updateItem('${day.id}','${item.id}','note',this.value)" placeholder="notă / preț"></td>
+        <td class="cell-del"><button onclick="deleteItem('${day.id}','${item.id}')">×</button></td>
+      </tr>`;
+    });
+    html += `<tr class="add-item-row"><td colspan="5"><button class="add-item-btn" onclick="addItem('${day.id}')">+ Adaugă element</button></td></tr>
+    </tbody>`;
+  });
+  html += `</table><button class="add-day-btn" onclick="addDay()">+ Adaugă zi / etapă nouă</button>`;
+  c.innerHTML = html;
+
+  applyCollapseStates();
+  renderPageLinks();
+}
+
+function applyCollapseStates(){
+  document.querySelectorAll('.day-group').forEach(tbody=>{
+    const collapsed = tbody.classList.contains('collapsed');
+    tbody.querySelectorAll('.item-tr, .add-item-row').forEach(row=>{
+      row.style.display = collapsed ? 'none' : '';
+    });
+  });
+}
+
+function renderPageLinks(){
+  const box = document.getElementById('pagelinkList');
+  if(!box) return;
+  box.innerHTML = '';
+  pagesList.filter(p=>p.slug!=='itinerary').forEach(p=>{
+    const row = document.createElement('div');
+    row.className = 'pagelink-row';
+    row.innerHTML = `<span class="ic">${p.icon||'📍'}</span><span class="t">${escapeHtml(p.title)}</span><span class="d">${escapeHtml(p.dates||'')}</span><span class="arrow">→</span>`;
+    row.onclick = ()=>goToPage(p.slug);
+    box.appendChild(row);
+  });
+}
+
+function toggleDayCollapse(dayId, ev){
+  if(ev) ev.stopPropagation();
+  collapsedDays[dayId] = !collapsedDays[dayId];
+  const tbody = document.querySelector(`.day-group[data-day="${dayId}"]`);
+  tbody.classList.toggle('collapsed', collapsedDays[dayId]);
+  applyCollapseStates();
+}
+function updateDay(dayId, field, value){
+  const day = itinerary.find(d=>d.id===dayId); if(!day) return;
+  day[field] = value; persistItinerary();
+}
+function updateItem(dayId, itemId, field, value){
+  const day = itinerary.find(d=>d.id===dayId); if(!day) return;
+  const item = day.items.find(i=>i.id===itemId); if(!item) return;
+  item[field] = value; persistItinerary();
+}
+function addItem(dayId){
+  const day = itinerary.find(d=>d.id===dayId); if(!day) return;
+  day.items.push(mk('📍','','',''));
+  persistItinerary(); renderItineraryPage();
+}
+function deleteItem(dayId, itemId){
+  const day = itinerary.find(d=>d.id===dayId); if(!day) return;
+  day.items = day.items.filter(i=>i.id!==itemId);
+  persistItinerary(); renderItineraryPage();
+}
+function addDay(){
+  itinerary.push({id:'d'+Date.now(), title:'Ziua nouă', date:'', route:'', long:false, items:[mk('🚗','Drum','','')]});
+  persistItinerary(); renderItineraryPage();
+}
+function deleteDay(dayId, ev){
+  if(ev) ev.stopPropagation();
+  if(!confirm('Ștergi această zi din itinerar?')) return;
+  itinerary = itinerary.filter(d=>d.id!==dayId);
+  persistItinerary(); renderItineraryPage();
+}
+function updateCarInfo(field, value){ carInfo[field]=value; persistCarInfo(); }
+
+/* ============================================================
+   CITY PAGE
+   ============================================================ */
+async function getPage(slug){
+  if(pagesCache[slug]) return pagesCache[slug];
+  const raw = await apiGet('page:'+slug);
+  let page = raw ? safeParse(raw, null) : null;
+  if(!page){
+    const d = DEFAULT_PAGE_CONTENT[slug] || {countries:'',restrictions:'',events:'',journal:''};
+    page = {slug, countries:d.countries||'', restrictions:d.restrictions||'', events:d.events||'', journal:d.journal||'', photos:[], docs:[]};
+    await apiSet('page:'+slug, JSON.stringify(page));
+  }
+  if(!page.photos) page.photos = [];
+  if(!page.docs) page.docs = [];
+  pagesCache[slug] = page;
+  return page;
+}
+
+async function renderCityPage(slug){
+  const c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="empty-msg">Se încarcă...</div>';
+  const page = await getPage(slug);
+  const meta = pagesList.find(p=>p.slug===slug) || {title:slug, dates:''};
+  window._pendingPersist = window._pendingPersist || {};
+  window._pendingPersist[slug] = persistPageFactory(slug);
+
+  let html = `
+    <div class="crumbs"><a href="#" onclick="goToPage('itinerary');return false;">← Itinerariu</a></div>
+    <div class="page-icon" contenteditable="true" onblur="updatePageIcon('${slug}', this.textContent)">${escapeHtml(meta.icon||'📍')}</div>
+    <h1 class="page-title" contenteditable="true" onblur="renameCurrentPage(this.textContent)">${escapeHtml(meta.title)}</h1>
+    <input class="date-input" value="${escAttr(meta.dates||'')}" placeholder="ex: 15–20.07" oninput="updatePageDates('${slug}', this.value)">
+
+    <h2 class="section-h">🌍 Țări tranzitate pe drumul spre aici</h2>
+    <div class="doc-section"><textarea class="field" oninput="updatePageField('${slug}','countries',this.value)">${escapeHtml(page.countries)}</textarea></div>
+
+    <h2 class="section-h">🪪 Restricții auto și taxe de drum</h2>
+    <p class="section-hint">Viniete, limite de viteză, particularități locale</p>
+    <div class="doc-section"><textarea class="field" style="min-height:100px;" oninput="updatePageField('${slug}','restrictions',this.value)">${escapeHtml(page.restrictions)}</textarea></div>
+
+    <h2 class="section-h">🎉 Evenimente & reduceri în perioada sejurului</h2>
+    <div class="doc-section"><textarea class="field" style="min-height:90px;" oninput="updatePageField('${slug}','events',this.value)">${escapeHtml(page.events)}</textarea></div>
+
+    <h2 class="section-h">📓 Jurnal de călătorie</h2>
+    <p class="section-hint">Notează orice îți amintești — impresii, adrese, recomandări...</p>
+    <div class="doc-section"><textarea class="field journal" oninput="updatePageField('${slug}','journal',this.value)">${escapeHtml(page.journal)}</textarea></div>
+
+    <h2 class="section-h">📷 Poze</h2>
+    <div class="photo-grid" id="photoGrid-${slug}"></div>
+    <label class="upload-btn">📤 Adaugă poză<input type="file" accept="image/*" onchange="onPhotoSelected('${slug}', this)"></label>
+
+    <h2 class="section-h">📎 Documente (bilete, dovezi de plată)</h2>
+    <div id="docList-${slug}"></div>
+    <label class="upload-btn">📤 Adaugă document<input type="file" accept="application/pdf,image/*" onchange="onDocSelected('${slug}', this)"></label>
+
+    ${!meta.system?`<div class="danger-zone"><h2 class="section-h">⚠️ Zonă sensibilă</h2>
+      <p class="section-hint">Șterge complet această pagină și tot ce conține.</p>
+      <button class="btn btn-danger" onclick="deleteCurrentPage('${slug}')">Șterge pagina "${escapeHtml(meta.title)}"</button></div>`:''}
+  `;
+  c.innerHTML = html;
+  renderPhotoGrid(slug);
+  renderDocList(slug);
+}
+function updatePageField(slug, field, value){ const p=pagesCache[slug]; if(!p) return; p[field]=value; window._pendingPersist[slug](); }
+function updatePageDates(slug, value){ const p=pagesList.find(x=>x.slug===slug); if(p){ p.dates=value; persistPagesList(); renderNav(); } }
+function updatePageIcon(slug, value){
+  value=(value||'').trim().slice(0,4); const p=pagesList.find(x=>x.slug===slug);
+  if(p&&value){ p.icon=value; persistPagesList(); renderNav(); }
+}
+function renameCurrentPage(newTitle){
+  newTitle=newTitle.trim(); const p=pagesList.find(x=>x.slug===currentSlug);
+  if(p&&newTitle){ p.title=newTitle; persistPagesList(); renderNav(); document.getElementById('topTitle').textContent=newTitle; }
+}
+
+/* ---------- Photos (real files via Vercel Blob) ---------- */
+function resizeImageFile(file, maxDim, quality){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(), reader=new FileReader();
+    reader.onload=e=>{ img.src=e.target.result; };
+    reader.onerror=reject;
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){ if(w>h){h=Math.round(h*maxDim/w);w=maxDim;} else {w=Math.round(w*maxDim/h);h=maxDim;} }
+      const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror=reject; reader.readAsDataURL(file);
+  });
+}
+async function uploadFile(name, dataUrl, contentType){
+  const base64 = dataUrl.split(',')[1];
+  const r = await fetch('/api/files', {
+    method:'POST', headers:{'Content-Type':'application/json','x-trip-pin':PIN},
+    body: JSON.stringify({name, dataBase64:base64, contentType})
+  });
+  if(!r.ok){ const e = await r.json().catch(()=>({error:'necunoscută'})); throw new Error(e.error||'eroare upload'); }
+  const { id } = await r.json();
+  return '/api/files?id='+id;
+}
+async function deleteFileByUrl(url){
+  const id = new URL(url, window.location.origin).searchParams.get('id');
+  if(!id) return;
+  fetch('/api/files', {method:'DELETE', headers:{'Content-Type':'application/json','x-trip-pin':PIN}, body:JSON.stringify({id})}).catch(()=>{});
+}
+async function onPhotoSelected(slug, input){
+  const file = input.files[0]; if(!file) return; input.value='';
+  const grid = document.getElementById('photoGrid-'+slug);
+  const temp = document.createElement('div'); temp.className='photo-thumb loading'; temp.textContent='...';
+  grid.appendChild(temp);
+  try{
+    const dataUrl = await resizeImageFile(file, 1600, 0.75);
+    if(dataUrl.length*0.75 > 4*1024*1024){ alert('Poza rămâne prea mare.'); temp.remove(); return; }
+    const url = await uploadFile(file.name, dataUrl, 'image/jpeg');
+    const page = pagesCache[slug];
+    page.photos.push({id:'p'+Date.now(), name:file.name, url});
+    const ok = await apiSet('page:'+slug, JSON.stringify(page));
+    flashSaved(ok);
+    renderPhotoGrid(slug);
+  }catch(e){ alert('Eroare la încărcarea pozei: '+e.message); temp.remove(); }
+}
+function renderPhotoGrid(slug){
+  const page = pagesCache[slug]; const grid = document.getElementById('photoGrid-'+slug); if(!grid) return;
+  if(!page.photos.length){ grid.innerHTML='<div class="empty-msg">Nicio poză încă.</div>'; return; }
+  grid.innerHTML='';
+  page.photos.forEach(ph=>{
+    const div=document.createElement('div'); div.className='photo-thumb';
+    div.innerHTML = `<img src="${ph.url}" onclick="openLightbox('${ph.url.replace(/'/g,"\\'")}')"><button class="rm" onclick="removePhoto('${slug}','${ph.id}',event)">×</button>`;
+    grid.appendChild(div);
+  });
+}
+async function removePhoto(slug, id, ev){
+  if(ev) ev.stopPropagation();
+  if(!confirm('Ștergi această poză?')) return;
+  const page = pagesCache[slug];
+  const ph = page.photos.find(p=>p.id===id);
+  page.photos = page.photos.filter(p=>p.id!==id);
+  await apiSet('page:'+slug, JSON.stringify(page));
+  if(ph) deleteFileByUrl(ph.url);
+  flashSaved(true);
+  renderPhotoGrid(slug);
+}
+function openLightbox(url){ document.getElementById('lightboxImg').src=url; document.getElementById('lightbox').classList.add('show'); }
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+
+/* ---------- Documents ---------- */
+async function onDocSelected(slug, input){
+  const file = input.files[0]; if(!file) return; input.value='';
+  if(file.size > 4*1024*1024){ alert('Fișierul depășește limita (~4MB pe planul gratuit).'); return; }
+  const reader = new FileReader();
+  reader.onload = async (e)=>{
+    try{
+      const dataUrl = e.target.result;
+      const url = await uploadFile(file.name, dataUrl, file.type||'application/octet-stream');
+      const page = pagesCache[slug];
+      page.docs.push({id:'d'+Date.now(), name:file.name, url, size:file.size});
+      const ok = await apiSet('page:'+slug, JSON.stringify(page));
+      flashSaved(ok);
+      renderDocList(slug);
+    }catch(err){ alert('Eroare la încărcarea documentului: '+err.message); }
+  };
+  reader.readAsDataURL(file);
+}
+function renderDocList(slug){
+  const page = pagesCache[slug]; const box = document.getElementById('docList-'+slug); if(!box) return;
+  if(!page.docs.length){ box.innerHTML='<div class="empty-msg">Niciun document încă.</div>'; return; }
+  box.innerHTML='';
+  page.docs.forEach(d=>{
+    const kb = d.size ? Math.round(d.size/1024)+' KB' : '';
+    const row = document.createElement('div'); row.className='doc-row';
+    row.innerHTML = `<span class="di">${d.name.toLowerCase().endsWith('.pdf')?'📄':'🖼️'}</span>
+      <span class="dn">${escapeHtml(d.name)}</span><span class="dsz">${kb}</span>
+      <a class="open" href="${d.url}" target="_blank" title="Deschide">👁</a>
+      <button class="rm" onclick="removeDoc('${slug}','${d.id}')" title="Șterge">🗑</button>`;
+    box.appendChild(row);
+  });
+}
+async function removeDoc(slug, id){
+  if(!confirm('Ștergi acest document?')) return;
+  const page = pagesCache[slug];
+  const d = page.docs.find(x=>x.id===id);
+  page.docs = page.docs.filter(x=>x.id!==id);
+  await apiSet('page:'+slug, JSON.stringify(page));
+  if(d) deleteFileByUrl(d.url);
+  flashSaved(true);
+  renderDocList(slug);
+}
+
+/* ============================================================
+   ADD / DELETE PAGES
+   ============================================================ */
+function openAddPageModal(){
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<h3>Adaugă o pagină nouă</h3>
+    <input id="newPageTitle" placeholder="Nume locație (ex: Split)">
+    <input id="newPageDates" placeholder="Perioadă (ex: 23–24.07)">
+    <div class="row"><button class="btn btn-ghost" onclick="closeModal()">Anulează</button>
+      <button class="btn btn-primary" onclick="confirmAddPage()">Adaugă</button></div>`;
+  document.getElementById('modalBack').classList.add('show');
+  setTimeout(()=>document.getElementById('newPageTitle').focus(),50);
+}
+async function confirmAddPage(){
+  const title = document.getElementById('newPageTitle').value.trim();
+  const dates = document.getElementById('newPageDates').value.trim();
+  if(!title) return;
+  let slug = slugify(title), n=1;
+  while(pagesList.find(p=>p.slug===slug)){ slug = slugify(title)+'-'+(++n); }
+  pagesList.push({slug, title, icon:'📍', dates});
+  await persistPagesList();
+  const page = {slug, countries:'', restrictions:'', events:'', journal:'', photos:[], docs:[]};
+  pagesCache[slug] = page;
+  await apiSet('page:'+slug, JSON.stringify(page));
+  closeModal(); renderNav(); goToPage(slug);
+}
+function closeModal(){ document.getElementById('modalBack').classList.remove('show'); }
+async function deleteCurrentPage(slug){
+  const p = pagesList.find(x=>x.slug===slug);
+  if(!confirm(`Ștergi definitiv pagina "${p?p.title:slug}" și tot conținutul ei? Nu se poate anula.`)) return;
+  const page = await getPage(slug);
+  for(const ph of page.photos) deleteFileByUrl(ph.url);
+  for(const d of page.docs) deleteFileByUrl(d.url);
+  await apiDel('page:'+slug);
+  pagesList = pagesList.filter(x=>x.slug!==slug);
+  delete pagesCache[slug];
+  await persistPagesList();
+  renderNav(); goToPage('itinerary');
+}
+
+/* ============================================================
+   PIN CHANGE / EXPORT
+   ============================================================ */
+function openChangePinModal(){
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<h3>Schimbă PIN-ul grupului</h3>
+    <input id="oldPin" placeholder="PIN actual" type="password">
+    <input id="newPin" placeholder="PIN nou">
+    <div class="row"><button class="btn btn-ghost" onclick="closeModal()">Anulează</button>
+      <button class="btn btn-primary" onclick="confirmChangePin()">Schimbă</button></div>`;
+  document.getElementById('modalBack').classList.add('show');
+}
+async function confirmChangePin(){
+  const oldV = document.getElementById('oldPin').value.trim();
+  const newV = document.getElementById('newPin').value.trim();
+  const r = await fetch('/api/pin', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({oldPin:oldV, newPin:newV})});
+  if(!r.ok){ alert('PIN actual incorect.'); return; }
+  PIN = newV; sessionStorage.setItem('tripPin', newV);
+  closeModal(); alert('PIN schimbat. Anunță-i pe ceilalți din grup!');
+}
+async function exportAll(){
+  const allPages = {};
+  for(const p of pagesList){ if(p.slug==='itinerary') continue; allPages[p.slug] = await getPage(p.slug); }
+  const bundle = {exportedAt:new Date().toISOString(), pagesList, itinerary, carInfo, pages:allPages};
+  const blob = new Blob([JSON.stringify(bundle,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='jurnal-calatorie-backup.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function slugify(str){ return (str||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,30)||'pagina'; }
+function escapeHtml(str){ return (str||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function escAttr(str){ return escapeHtml(str).replace(/\n/g,' '); }
+</script>
+</body>
+</html>

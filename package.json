@@ -1,0 +1,9 @@
+{
+  "name": "jurnal-calatorie",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jurnal de calatorie comun, cu itinerar editabil, poze si documente - gazduit pe Netlify (gratuit, storage automat).",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
